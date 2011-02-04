@@ -523,7 +523,6 @@
 							scrollTimeout = null;
 						}
 						ele.unbind(eve);
-						focusElem();
 					}
 				);
 			}
@@ -572,7 +571,6 @@
 										scrollTimeout && clearTimeout(scrollTimeout);
 										scrollTimeout = null;
 										$(document).unbind('mouseup.jsp', cancelClick);
-										focusElem();
 									};
 								doScroll();
 								$(document).bind('mouseup.jsp', cancelClick);
@@ -623,7 +621,6 @@
 										scrollTimeout && clearTimeout(scrollTimeout);
 										scrollTimeout = null;
 										$(document).unbind('mouseup.jsp', cancelClick);
-										focusElem();
 									};
 								doScroll();
 								$(document).bind('mouseup.jsp', cancelClick);
@@ -654,7 +651,6 @@
 				if (horizontalDrag) {
 					horizontalDrag.removeClass('jspActive');
 				}
-				focusElem();
 			}
 
 			function positionDragY(destY, animate)
@@ -937,6 +933,10 @@
 			
 			function initKeyboardNav()
 			{
+				var validParents = [];
+				isScrollableH && validParents.push(horizontalBar[0]);
+				isScrollableV && validParents.push(verticalBar[0]);
+				
 				// IE also focuses elements that don't have tabindex set.
 				pane.focus(
 					function()
@@ -951,7 +951,7 @@
 						'keydown.jsp',
 						function(e)
 						{
-							if (e.target !== this){
+							if (e.target !== this && !(validParents.length && $(e.target).closest(validParents).length)){
 								return;
 							}
 							var dX = horizontalDragPosition, dY = verticalDragPosition;
@@ -1067,14 +1067,6 @@
 						}
 					}
 				);
-			}
-			
-			// If no element has focus, focus elem to support keyboard navigation
-			function focusElem()
-			{
-				if (!$(':focus').length) {
-					elem.focus();
-				}
 			}
 			
 			// Init touch on iPad, iPhone, iPod, Android
