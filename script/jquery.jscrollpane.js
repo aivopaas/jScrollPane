@@ -1,5 +1,5 @@
 /*!
- * jScrollPane - v2.0.0beta8 - 2011-01-24
+ * jScrollPane - v2.0.0beta9 - 2011-02-04
  * http://jscrollpane.kelvinluck.com/
  *
  * Copyright (c) 2010 Kelvin Luck
@@ -8,7 +8,7 @@
 
 // Script: jScrollPane - cross browser customisable scrollbars
 //
-// *Version: 2.0.0beta8, Last updated: 2011-01-24*
+// *Version: 2.0.0beta10, Last updated: 2011-02-04*
 //
 // Project Home - http://jscrollpane.kelvinluck.com/
 // GitHub       - http://github.com/vitch/jScrollPane
@@ -39,7 +39,9 @@
 //
 // About: Release History
 //
-// 2.0.0beta8 - (in progress)
+// 2.0.0beta10 - (in progress)
+// 2.0.0beta9 - (2011-01-31) new API methods, bug fixes and correct keyboard support for FF/OSX
+// 2.0.0beta8 - (2011-01-29) touchscreen support, improved keyboard support
 // 2.0.0beta7 - (2011-01-23) scroll speed consistent (thanks Aivo Paas)
 // 2.0.0beta6 - (2010-12-07) scrollToElement horizontal support
 // 2.0.0beta5 - (2010-10-18) jQuery 1.4.3 support, various bug fixes
@@ -64,7 +66,7 @@
 				horizontalBar, horizontalTrack, horizontalTrackWidth, horizontalDragWidth, arrowLeft, arrowRight,
 				reinitialiseInterval, originalPadding, originalPaddingTotalWidth, previousContentWidth,
 				wasAtTop = true, wasAtLeft = true, wasAtBottom = false, wasAtRight = false,
-				keyDown, keyDownTO,
+				originalElement = elem.clone(false, false).empty(),
 				mwEvent = $.fn.mwheelIntent ? 'mwheelIntent.jsp' : 'mousewheel.jsp';
 
 			originalPadding = elem.css('paddingTop') + ' ' +
@@ -78,12 +80,13 @@
 			{
 
 				var clonedElem, tempWrapper, /*firstChild, lastChild, */isMaintainingPositon, lastContentX, lastContentY,
-						hasContainingSpaceChanged;
+						hasContainingSpaceChanged, originalScrollTop, originalScrollLeft;
 
 				settings = s;
 
 				if (pane === undefined) {
-
+					originalScrollTop = elem.scrollTop();
+					originalScrollLeft = elem.scrollLeft();
 					elem.css(
 						{
 							overflow: 'hidden',
@@ -150,7 +153,7 @@
 				// width as allowed by its container, regardless of overflow settings.
 				// A cunning workaround is to clone the element, set its position to absolute and place it in a narrow
 				// container. Now it will push outwards to its maxium real width...
-				clonedElem = pane.clone().css('position', 'absolute');
+				clonedElem = pane.clone(false, false).css('position', 'absolute');
 				tempWrapper = $('<div style="width:1px; position: relative;" />').append(clonedElem);
 				$('body').append(tempWrapper);
 				contentWidth = Math.max(pane.outerWidth(), clonedElem.outerWidth());
@@ -190,8 +193,8 @@
 					resizeScrollbars();
 
 					if (isMaintainingPositon) {
-						scrollToX(lastContentX);
-						scrollToY(lastContentY);
+						scrollToX(lastContentX, false);
+						scrollToY(lastContentY, false);
 					}
 
 					initFocusHandler();
@@ -222,6 +225,9 @@
 				} else if (!settings.autoReinitialise && reinitialiseInterval) {
 					clearInterval(reinitialiseInterval);
 				}
+
+				originalScrollTop && elem.scrollTop(0) && scrollToY(originalScrollTop, false);
+				originalScrollLeft && elem.scrollLeft(0) && scrollToX(originalScrollLeft, false);
 
 				elem.trigger('jsp-initialised', [isScrollableH || isScrollableV]);
 			}
@@ -436,7 +442,7 @@
 				percentInViewV = contentHeight / paneHeight;
 
 				if (isScrollableH) {
-					horizontalDragWidth = 1 / percentInViewH * horizontalTrackWidth;
+					horizontalDragWidth = Math.ceil(1 / percentInViewH * horizontalTrackWidth);
 					if (horizontalDragWidth > settings.horizontalDragMaxWidth) {
 						horizontalDragWidth = settings.horizontalDragMaxWidth;
 					} else if (horizontalDragWidth < settings.horizontalDragMinWidth) {
@@ -447,7 +453,7 @@
 					_positionDragX(horizontalDragPosition); // To update the state for the arrow buttons
 				}
 				if (isScrollableV) {
-					verticalDragHeight = 1 / percentInViewV * verticalTrackHeight;
+					verticalDragHeight = Math.ceil(1 / percentInViewV * verticalTrackHeight);
 					if (verticalDragHeight > settings.verticalDragMaxHeight) {
 						verticalDragHeight = settings.verticalDragMaxHeight;
 					} else if (verticalDragHeight < settings.verticalDragMinHeight) {
@@ -518,10 +524,8 @@
 					function()
 					{
 						arrow.removeClass('jspActive');
-						if (scrollTimeout) {
-							clearTimeout(scrollTimeout);
-							scrollTimeout = null;
-						}
+						scrollTimeout && clearTimeout(scrollTimeout);
+						scrollTimeout = null;
 						ele.unbind(eve);
 					}
 				);
@@ -699,7 +703,7 @@
 				
 				updateVerticalArrows(isAtTop, isAtBottom);
 				pane.css('top', destTop);
-				elem.trigger('jsp-scroll-y', [-destTop, isAtTop, isAtBottom]);
+				elem.trigger('jsp-scroll-y', [-destTop, isAtTop, isAtBottom]).trigger('scroll');
 			}
 
 			function positionDragX(destX, animate)
@@ -746,7 +750,7 @@
 				
 				updateHorizontalArrows(isAtLeft, isAtRight);
 				pane.css('left', destLeft);
-				elem.trigger('jsp-scroll-x', [-destLeft, isAtLeft, isAtRight]);
+				elem.trigger('jsp-scroll-x', [-destLeft, isAtLeft, isAtRight]).trigger('scroll');
 			}
 
 			function updateVerticalArrows(isAtTop, isAtBottom)
@@ -880,63 +884,11 @@
 				pane.find(':input,a').unbind('focus.jsp');
 			}
 			
-			function keyDownHandler()
-			{
-				var dX = horizontalDragPosition, dY = verticalDragPosition;
-				switch(keyDown) {
-					case 40: // down
-						jsp.scrollByY(settings.keyboardSpeed, false);
-						break;
-					case 38: // up
-						jsp.scrollByY(-settings.keyboardSpeed, false);
-						break;
-					case 34: // page down
-					case 32: // space
-						jsp.scrollByY(paneHeight * settings.scrollPagePercent, false);
-						break;
-					case 33: // page up
-						jsp.scrollByY(-paneHeight * settings.scrollPagePercent, false);
-						break;
-					case 39: // right
-						jsp.scrollByX(settings.keyboardSpeed, false);
-						break;
-					case 37: // left
-						jsp.scrollByX(-settings.keyboardSpeed, false);
-						break;
-				}
-				
-				return dX != horizontalDragPosition || dY != verticalDragPosition;
-			}
-			
-			function holdKeyDown(initial)
-			{
-				keyDownTO = setTimeout(
-					function()
-					{
-						holdKeyDown();
-					},
-					initial ? settings.initialDelay : settings.keyboardRepeatFreq
-				);
-				if (!keyDownHandler()) {
-					stopKeyDown();
-				}
-			}
-			
-			function stopKeyDown()
-			{
-				keyDown = null;
-				if (keyDownTO) {
-					clearTimeout(keyDownTO);
-					keyDownTO = null;
-				}
-			}
-			
 			function initKeyboardNav()
 			{
-				var validParents = [];
+				var keyDown, elementHasScrolled, validParents = [];
 				isScrollableH && validParents.push(horizontalBar[0]);
 				isScrollableV && validParents.push(verticalBar[0]);
-				
 				// IE also focuses elements that don't have tabindex set.
 				pane.focus(
 					function()
@@ -946,7 +898,7 @@
 				);
 				
 				elem.attr('tabindex', 0)
-					.unbind('keydown.jsp keyup.jsp')
+					.unbind('keydown.jsp keypress.jsp')
 					.bind(
 						'keydown.jsp',
 						function(e)
@@ -963,11 +915,8 @@
 								case 33: // page up
 								case 39: // right
 								case 37: // left
-									if (keyDown != e.keyCode) {
-										stopKeyDown();
-										keyDown = e.keyCode;
-										holdKeyDown(true);
-									}
+									keyDown = e.keyCode;
+									keyDownHandler();
 									break;
 								case 35: // end
 									scrollToY(contentHeight - paneHeight);
@@ -979,17 +928,20 @@
 									break;
 							}
 
-							if (keyDown == e.keyCode || dX != horizontalDragPosition || dY != verticalDragPosition) {
-								return false;
-							}
+							elementHasScrolled = e.keyCode == keyDown && dX != horizontalDragPosition || dY != verticalDragPosition;
+							return !elementHasScrolled;
 						}
 					).bind(
-						'keyup.jsp',
+						'keypress.jsp', // For FF/ OSX so that we can cancel the repeat key presses if the JSP scrolls...
 						function(e)
 						{
-							stopKeyDown();
+							if (e.keyCode == keyDown) {
+								keyDownHandler();
+							}
+							return !elementHasScrolled;
 						}
 					);
+				
 				if (settings.hideFocus) {
 					elem.css('outline', 'none');
 					if ('hideFocus' in container[0]){
@@ -1001,13 +953,42 @@
 						elem.attr('hideFocus', false);
 					}
 				}
+				
+				function keyDownHandler()
+				{
+					var dX = horizontalDragPosition, dY = verticalDragPosition;
+					switch(keyDown) {
+						case 40: // down
+							jsp.scrollByY(settings.keyboardSpeed, false);
+							break;
+						case 38: // up
+							jsp.scrollByY(-settings.keyboardSpeed, false);
+							break;
+						case 34: // page down
+						case 32: // space
+							jsp.scrollByY(paneHeight * settings.scrollPagePercent, false);
+							break;
+						case 33: // page up
+							jsp.scrollByY(-paneHeight * settings.scrollPagePercent, false);
+							break;
+						case 39: // right
+							jsp.scrollByX(settings.keyboardSpeed, false);
+							break;
+						case 37: // left
+							jsp.scrollByX(-settings.keyboardSpeed, false);
+							break;
+					}
+
+					elementHasScrolled = dX != horizontalDragPosition || dY != verticalDragPosition;
+					return elementHasScrolled;
+				}
 			}
 			
 			function removeKeyboardNav()
 			{
 				elem.attr('tabindex', '-1')
 					.removeAttr('tabindex')
-					.unbind('keydown.jsp keyup.jsp');
+					.unbind('keydown.jsp keypress.jsp');
 			}
 
 			function observeHash()
@@ -1129,6 +1110,15 @@
 					}
 				);
 			}
+			
+			function destroy(){
+				var currentY = contentPositionY(),
+					currentX = contentPositionX();
+				elem.removeClass('jspScrollable').unbind('.jsp');
+				elem.replaceWith(originalElement.append(pane.children()));
+				originalElement.scrollTop(currentY);
+				originalElement.scrollLeft(currentX);
+			}
 
 			// Public API
 			$.extend(
@@ -1174,6 +1164,20 @@
 					{
 						scrollToY(destY, animate);
 					},
+					// Scrolls the pane to the specified percentage of its maximum horizontal scroll position. animate
+					// is optional and if not passed then the value of animateScroll from the settings object this
+					// jScrollPane was initialised with is used.
+					scrollToPercentX: function(destPercentX, animate)
+					{
+						scrollToX(destPercentX * (contentWidth - paneWidth), animate);
+					},
+					// Scrolls the pane to the specified percentage of its maximum vertical scroll position. animate
+					// is optional and if not passed then the value of animateScroll from the settings object this
+					// jScrollPane was initialised with is used.
+					scrollToPercentY: function(destPercentY, animate)
+					{
+						scrollToY(destPercentY * (contentHeight - paneHeight), animate);
+					},
 					// Scrolls the pane by the specified amount of pixels. animate is optional and if not passed then
 					// the value of animateScroll from the settings object this jScrollPane was initialised with is used.
 					scrollBy: function(deltaX, deltaY, animate)
@@ -1196,6 +1200,20 @@
 						var destY = contentPositionY() + deltaY,
 							percentScrolled = destY / (contentHeight - paneHeight);
 						positionDragY(percentScrolled * dragMaxY, animate);
+					},
+					// Positions the horizontal drag at the specified x position (and updates the viewport to reflect
+					// this). animate is optional and if not passed then the value of animateScroll from the settings
+					// object this jScrollPane was initialised with is used.
+					positionDragX: function(x, animate)
+					{
+						positionDragX(x, animate);
+					},
+					// Positions the vertical drag at the specified y position (and updates the viewport to reflect
+					// this). animate is optional and if not passed then the value of animateScroll from the settings
+					// object this jScrollPane was initialised with is used.
+					positionDragY: function(y, animate)
+					{
+						positionDragX(y, animate);
 					},
 					// This method is called when jScrollPane is trying to animate to a new position. You can override
 					// it if you want to provide advanced animation functionality. It is passed the following arguments:
@@ -1228,6 +1246,26 @@
 					{
 						return contentPositionY();
 					},
+					// Returns the width of the content within the scroll pane.
+					getContentWidth: function()
+					{
+						return contentWidth();
+					},
+					// Returns the height of the content within the scroll pane.
+					getContentHeight: function()
+					{
+						return contentHeight();
+					},
+					// Returns the horizontal position of the viewport within the pane content.
+					getPercentScrolledX: function()
+					{
+						return contentPositionX() / (contentWidth - paneWidth);
+					},
+					// Returns the vertical position of the viewport within the pane content.
+					getPercentScrolledY: function()
+					{
+						return contentPositionY() / (contentHeight - paneHeight);
+					},
 					// Returns whether or not this scrollpane has a horizontal scrollbar.
 					getIsScrollableH: function()
 					{
@@ -1258,6 +1296,12 @@
 					hijackInternalLinks: function()
 					{
 						hijackInternalLinks();
+					},
+					// Removes the jScrollPane and returns the page to the state it was in before jScrollPane was
+					// initialised.
+					destroy: function()
+					{
+							destroy();
 					}
 				}
 			);
@@ -1317,7 +1361,6 @@
 		enableKeyboardNavigation	: true,
 		hideFocus					: false,
 		keyboardSpeed				: 0,
-		keyboardRepeatFreq			: 50,
 		initialDelay                : 300,        // Delay before starting repeating
 		speed						: 30,		// Default speed when others falsey
 		scrollPagePercent			: .8		// Percent of visible area scrolled when pageUp/Down or track area pressed

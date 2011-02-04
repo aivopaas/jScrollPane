@@ -76,6 +76,18 @@ var api = element.data('jsp');</pre>
 				viewport. animate is optional and if not passed then the value of animateScroll from the settings
 				object this jScrollPane was initialised with is used.
 			</p>
+			<h2 id="scrollToPercentX">scrollToPercentX(destPercentX, animate)</h2>
+			<p>
+				Scrolls the pane to the specified percentage of its maximum horizontal scroll position. animate
+				is optional and if not passed then the value of animateScroll from the settings object this
+				jScrollPane was initialised with is used.
+			</p>
+			<h2 id="scrollToPercentY">scrollToPercentY(destPercentY, animate)</h2>
+			<p>
+				Scrolls the pane to the specified percentage of its maximum vertical scroll position. animate
+				is optional and if not passed then the value of animateScroll from the settings object this
+				jScrollPane was initialised with is used.
+			</p>
 			<h2 id="scrollBy">scrollBy(deltaX, deltaY, animate)</h2>
 			<p>
 				Scrolls the pane by the specified amount of pixels. animate is optional and if not passed then
@@ -90,6 +102,18 @@ var api = element.data('jsp');</pre>
 			<p>
 				Scrolls the pane by the specified amount of pixels. animate is optional and if not passed then
 				the value of animateScroll from the settings object this jScrollPane was initialised with is used.
+			</p>
+			<h2 id="positionDragX">positionDragX(x, animate)</h2>
+			<p>
+				Positions the horizontal drag at the specified x position (and updates the viewport to reflect
+				this). animate is optional and if not passed then the value of animateScroll from the settings
+				object this jScrollPane was initialised with is used.
+			</p>
+			<h2 id="positionDragY">positionDragY(y, animate)</h2>
+			<p>
+				Positions the vertical drag at the specified y position (and updates the viewport to reflect
+				this). animate is optional and if not passed then the value of animateScroll from the settings
+				object this jScrollPane was initialised with is used.
 			</p>
 			<h2 id="animate">animate(ele, prop, value, stepCallback)</h2>
 			<p>
@@ -114,9 +138,25 @@ var api = element.data('jsp');</pre>
 			<p>
 				Returns the current y position of the viewport with regards to the content pane.
 			</p>
+			<h2 id="getContentWidth">getContentWidth()</h2>
+			<p>
+				Returns the width of the content within the scroll pane.
+			</p>
+			<h2 id="getContentHeight">getContentHeight()</h2>
+			<p>
+				Returns the height of the content within the scroll pane.
+			</p>
 			<h2 id="getIsScrollableH">getIsScrollableH()</h2>
 			<p>
 				Returns whether or not this scrollpane has a horizontal scrollbar.
+			</p>
+			<h2 id="getPercentScrolledX">getPercentScrolledX()</h2>
+			<p>
+				Returns the horizontal position of the viewport within the pane content.
+			</p>
+			<h2 id="getPercentScrolledY">getPercentScrolledY()</h2>
+			<p>
+				Returns the vertical position of the viewport within the pane content.
 			</p>
 			<h2 id="getIsScrollableV">getIsScrollableV()</h2>
 			<p>
@@ -139,6 +179,11 @@ var api = element.data('jsp');</pre>
 				Hijacks the links on the page which link to content inside the scrollpane. If you have changed
 				the content of your page (e.g. via AJAX) and want to make sure any new anchor links to the
 				contents of your scroll pane will work then call this function.
+			</p>
+			<h2 id="destroy">destroy()</h2>
+			<p>
+				Destroys the jScrollPane on the instance matching this API object and restores the browser's
+				default behaviour. <a href="destroy.html">Example</a>.
 			</p>
 		</div>
 	</body>
